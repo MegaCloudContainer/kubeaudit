@@ -11,3 +11,4 @@ coverage.txt
 /.vscode
 .go-version
 profile.out
+/.idea

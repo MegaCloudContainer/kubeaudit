@@ -1,32 +1,70 @@
 project_name: kubeaudit
 release:
   github:
-    owner: Shopify
+    owner: MegaCloudContainer
     name: kubeaudit
   draft: true
   name_template: "{{.ProjectName}}-v{{.Version}}"
-dockers:
-- dockerfile: goreleaser.Dockerfile
-  goos: linux
-  goarch: amd64
-  goarm: ''
-  image_templates:
-  - "ghcr.io/shopify/kubeaudit:latest"
-  - "ghcr.io/shopify/kubeaudit:{{ .Tag }}"
-  - "ghcr.io/shopify/kubeaudit:v{{ .Major }}.{{ .Minor }}"
 builds:
-- goos:
-  - linux
-  - darwin
-  - windows
-  goarm:
-  - 6
-  - 7
-  main: ./cmd/main.go
-  binary: kubeaudit
-  ldflags:
-  - -s -w -X github.com/Shopify/kubeaudit/cmd.Version={{.Version}} -X github.com/Shopify/kubeaudit/cmd.Commit={{.Commit}} -X github.com/Shopify/kubeaudit/cmd.BuildDate={{.Date}}
-
+  - id: release
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - arm64
+      - amd64
+    goarm:
+      - 6
+      - 7
+    main: ./cmd/main.go
+    binary: kubeaudit
+    ldflags:
+      - -s -w -X github.com/MegaCloudContainer/kubeaudit/cmd.Version={{.Version}} -X github.com/MegaCloudContainer/kubeaudit/cmd.Commit={{.Commit}} -X github.com/MegaCloudContainer/kubeaudit/cmd.BuildDate={{.Date}}
+    overrides:
+      - goos: linux
+        goarch: amd64
+        goamd64: v1
+        goarm: ""
+        gomips: ""
+        env:
+          - CGO_ENABLED=0
+          - GO111MODULE=on
+dockers:
+  - use: buildx
+    ids:
+      - release
+    goos: linux
+    goarch: amd64
+    dockerfile: goreleaser.Dockerfile
+    image_templates:
+      - "ghcr.io/megacloudcontainer/kubeaudit:{{ .Tag }}-amd64"
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+      - "--build-arg"
+      - "IMAGE_VERSION={{ .Tag }}"
+  - use: buildx
+    ids:
+      - release
+    goos: linux
+    goarch: arm64
+    dockerfile: goreleaser.Dockerfile
+    image_templates:
+      - "ghcr.io/megacloudcontainer/kubeaudit:{{ .Tag }}-arm64"
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - "--build-arg"
+      - "IMAGE_VERSION={{ .Tag }}"
+docker_manifests:
+  - name_template: ghcr.io/megacloudcontainer/kubeaudit:{{ .Tag }}
+    image_templates:
+      - ghcr.io/megacloudcontainer/kubeaudit:{{ .Tag }}-amd64
+      - ghcr.io/megacloudcontainer/kubeaudit:{{ .Tag }}-arm64
 changelog:
   sort: asc
   filters:
